@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Cobros — CEIE&A Consultores</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f1117;color:#e2e8f0;font-family:system-ui,-apple-system,sans-serif;padding:1.5rem;min-height:100vh}
+h1{font-size:18px;font-weight:500;color:#f1f5f9}
+.sub{font-size:12px;color:#64748b;margin-top:2px}
+.topbar{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:12px}
+.api-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.api-row input{background:#1e2330;border:0.5px solid #334155;border-radius:6px;color:#e2e8f0;font-size:12px;padding:6px 10px;width:300px}
+.btn{font-size:12px;padding:6px 16px;border-radius:6px;border:0.5px solid #3b82f6;background:#1e3a5f;color:#93c5fd;cursor:pointer;transition:all .15s}
+.btn:hover{background:#1d4ed8;color:#fff}
+.btn.active{background:#1d4ed8;color:#fff;border-color:#60a5fa}
+.corte-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.corte-row label{font-size:12px;color:#64748b}
+.corte-row select{background:#1e2330;border:0.5px solid #334155;border-radius:6px;color:#e2e8f0;font-size:12px;padding:5px 8px}
+.status-msg{font-size:12px;padding:6px 12px;border-radius:6px;margin-top:6px;display:none}
+.status-msg.ok{background:#064e3b;color:#34d399;display:block}
+.status-msg.err{background:#450a0a;color:#f87171;display:block}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:1.25rem}
+.metric{background:#1e2330;border-radius:8px;padding:12px 14px;border:0.5px solid #1e293b}
+.metric .lbl{font-size:11px;color:#64748b;margin-bottom:5px}
+.metric .val{font-size:22px;font-weight:500}
+.g{color:#34d399}.r{color:#f87171}.a{color:#fbbf24}.b{color:#60a5fa}.t{color:#2dd4bf}
+.totals-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.25rem}
+.totals-card{background:#1e2330;border:0.5px solid #1e293b;border-radius:10px;padding:14px 16px}
+.totals-card h3{font-size:11px;font-weight:500;color:#64748b;margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em}
+.total-line{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:0.5px solid #161b27;font-size:13px}
+.total-line:last-child{border-bottom:none;font-weight:500;font-size:14px}
+.total-line .lk{color:#94a3b8}.total-line .vk{color:#e2e8f0}
+/* Mensual section */
+.mensual-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px}
+.mensual-header .sec-title{font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.05em}
+.mensual-grid{display:flex;gap:8px;margin-bottom:1.25rem;overflow-x:auto;padding-bottom:4px}
+.mes-card{background:#1e2330;border:0.5px solid #1e293b;border-radius:10px;padding:14px 16px;min-width:110px;flex:1;text-align:center}
+.mes-card .mn{font-size:13px;font-weight:600;color:#94a3b8;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em}
+.mes-card .mc{font-size:18px;font-weight:600;color:#34d399;margin-bottom:4px}
+.mes-card .md{font-size:14px;font-weight:500;color:#f87171;margin-bottom:3px}
+.mes-card .mu{font-size:13px;font-weight:500;color:#60a5fa}
+.section{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.25rem}
+.card{background:#1e2330;border:0.5px solid #1e293b;border-radius:10px;padding:14px 16px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+.card h3{font-size:11px;font-weight:500;color:#64748b;text-transform:uppercase;letter-spacing:.05em}
+.leg{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px;font-size:11px;color:#94a3b8}
+.leg span{display:flex;align-items:center;gap:4px}
+.dot{width:8px;height:8px;border-radius:2px;display:inline-block}
+.filters{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.filters button{font-size:11px;padding:4px 12px;border-radius:20px;border:0.5px solid #334155;background:#1e2330;color:#94a3b8;cursor:pointer}
+.filters button.active{background:#1e3a5f;color:#60a5fa;border-color:#3b82f6}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{font-size:10px;font-weight:500;color:#64748b;padding:6px 8px;border-bottom:0.5px solid #1e293b;text-align:left;white-space:nowrap}
+td{padding:7px 8px;border-bottom:0.5px solid #161b27;color:#cbd5e1;white-space:nowrap}
+tr:hover td{background:#161b27}
+.badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500}
+.bg{background:#064e3b;color:#34d399}.br{background:#450a0a;color:#f87171}
+.ba{background:#451a03;color:#fbbf24}.bb{background:#1e3a5f;color:#60a5fa}
+.bt{background:#042f2e;color:#2dd4bf}.bx{background:#1e2330;color:#64748b}
+.count-bar{background:#1e293b;border-radius:8px;padding:10px 16px;margin-top:10px;display:flex;align-items:center;justify-content:space-between}
+.count-bar .count-num{font-size:22px;font-weight:600;color:#60a5fa}
+.count-bar .count-lbl{font-size:13px;color:#94a3b8}
+@media(max-width:700px){
+  .section{grid-template-columns:1fr}
+  .totals-row{grid-template-columns:1fr}
+  .topbar{flex-direction:column}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+    <div>
+      <h1>Dashboard cobros — CEIE&amp;A Consultores</h1>
+      <div class="sub">Honorarios 2026 · Conectado a Google Sheets en vivo · v5.5</div>
+    </div>
+    <div style="background:#1e2330;border:0.5px solid #334155;border-radius:10px;padding:10px 18px;text-align:center">
+      <div style="font-size:11px;color:#64748b;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Cartera mensual total</div>
+      <div style="font-size:20px;font-weight:600;color:#60a5fa" id="cartaTotal">—</div>
+    </div>
+  </div>
+  <div>
+    <div class="api-row">
+      <input id="apikey" value="AIzaSyD5gBN0pqJz1r93Q09Zopt8tg88NPrAjb8" style="display:none" />
+      <button class="btn" onclick="cargarSheets()">⟳ Actualizar datos</button>
+    </div>
+    <div class="corte-row">
+      <label>Mes de corte:</label>
+      <select id="corte" onchange="todosMeses=false;render()">
+        <option value="1">Enero</option><option value="2">Febrero</option>
+        <option value="3">Marzo</option><option value="4">Abril</option>
+        <option value="5" selected>Mayo</option><option value="6">Junio</option>
+        <option value="7">Julio</option><option value="8">Agosto</option>
+        <option value="9">Setiembre</option><option value="10">Octubre</option>
+        <option value="11">Noviembre</option><option value="12">Diciembre</option>
+      </select>
+      <button class="btn" id="btnTodos" onclick="toggleTodos()">Todos los meses</button>
+    </div>
+    <div class="status-msg" id="statusMsg"></div>
+  </div>
+</div>
+
+<div class="metrics" id="metrics"></div>
+<div class="totals-row" id="totals"></div>
+
+<!-- Mensual cuadritos -->
+<div class="mensual-header">
+  <div class="sec-title">Recaudación por mes — <span style="color:#34d399">▲ Cobrado</span> · <span style="color:#f87171">▼ Deuda</span> · <span style="color:#60a5fa">$ USD</span></div>
+</div>
+<div class="mensual-grid" id="mensual"></div>
+
+<!-- Gráficos -->
+<div class="section">
+  <div class="card">
+    <div class="card-header">
+      <h3>Estado de cartera por mes</h3>
+      <div class="leg" id="leg1"></div>
+    </div>
+    <div style="position:relative;height:220px"><canvas id="c1"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <h3>Recaudación mensual ₡</h3>
+      <div class="leg" id="leg2"></div>
+    </div>
+    <div style="position:relative;height:220px"><canvas id="c2"></canvas></div>
+  </div>
+</div>
+
+<!-- Tabla -->
+<div class="card">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+    <h3 style="margin:0">Detalle de clientes</h3>
+    <div class="filters">
+      <button class="active" onclick="setF('todos',this)">Todos</button>
+      <button onclick="setF('mora',this)">En mora</button>
+      <button onclick="setF('pendiente',this)">Pendiente</button>
+      <button onclick="setF('aldia',this)">Al día</button>
+      <button onclick="setF('afavor',this)">A favor</button>
+      <button onclick="setF('usd',this)">USD</button>
+    </div>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th>ID</th><th>Empresa</th><th>Mon.</th><th>Tarifa</th>
+        <th>Esperado</th><th>Pagado</th><th>Saldo</th>
+        <th>Mora</th><th>Estado</th><th>Últ. pago</th><th>Últ. comprobante</th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+  <div class="count-bar">
+    <div>
+      <div class="count-lbl">Clientes mostrados</div>
+    </div>
+    <div class="count-num" id="countNum">—</div>
+  </div>
+</div>
+
+<script>
+const SHEET_ID='1iDp3MU1MBC0sIyaebBHtbUr4vfUezuRoxGC5lyFoP3g';
+const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Setiembre','Octubre','Noviembre','Diciembre'];
+let estadoCuenta=[], pagosData=[], filtro='todos', chart1=null, chart2=null, todosMeses=false;
+
+function parseNum(v){
+  if(v===null||v===undefined||v==='')return 0;
+  const n=parseFloat(String(v).replace(/[₡$,\s]/g,''));
+  return isNaN(n)?0:n;
+}
+function fm(v,mon){
+  v=parseNum(v);
+  if(mon==='USD')return'$'+v.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:2});
+  return'₡'+Math.round(v).toLocaleString('en-US');
+}
+function bc(e){
+  if(!e)return'bx';
+  if(e.includes('MORA'))return'br';
+  if(e==='Al dia'||e==='Al día')return'bg';
+  if(e==='Pendiente')return'ba';
+  if(e==='A favor')return'bt';
+  if(e==='Especie')return'bb';
+  return'bx';
+}
+
+function toggleTodos(){
+  todosMeses=!todosMeses;
+  document.getElementById('btnTodos').classList.toggle('active',todosMeses);
+  render();
+}
+
+async function cargarSheets(){
+  const key=document.getElementById('apikey').value.trim();
+  const msg=document.getElementById('statusMsg');
+  if(!key){msg.className='status-msg err';msg.textContent='Pegá tu API Key primero.';return;}
+  msg.className='status-msg ok';msg.textContent='Cargando datos...';
+  const base=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values`;
+  try{
+    const [rEC,rPag]=await Promise.all([
+      fetch(`${base}/ESTADO_CUENTA!A4:N200?key=${key}`).then(r=>r.json()),
+      fetch(`${base}/PAGOS!A1:Q5000?key=${key}`).then(r=>r.json()),
+    ]);
+    if(rEC.error){msg.className='status-msg err';msg.textContent='Error: '+rEC.error.message;return;}
+    const hEC=rEC.values[0];
+    estadoCuenta=(rEC.values||[]).slice(1).map(r=>{const o={};hEC.forEach((h,i)=>o[h]=r[i]||'');return o;});
+    const hPag=(rPag.values||[])[0]||[];
+    pagosData=(rPag.values||[]).slice(1).map(r=>{const o={};hPag.forEach((h,i)=>o[h]=r[i]||'');return o;});
+    msg.className='status-msg ok';
+    msg.textContent='✓ '+estadoCuenta.length+' clientes · '+pagosData.length+' pagos — '+new Date().toLocaleTimeString('es-CR');
+    render();
+  }catch(e){msg.className='status-msg err';msg.textContent='Error: '+e.message;}
+}
+
+function calcMensual(mesesMostrar){
+  return mesesMostrar.map(m=>{
+    const mes=MESES[m-1];
+    const pagsMes=pagosData.filter(p=>{
+      const per=(p['Periodo_que_cubre']||'').toLowerCase();
+      return per.includes(mes.toLowerCase());
+    });
+    const cobCRC=pagsMes.filter(p=>p['Moneda recibida']==='CRC').reduce((a,p)=>a+parseNum(p['Monto recibido']),0);
+    const cobUSD=pagsMes.filter(p=>p['Moneda recibida']==='USD').reduce((a,p)=>a+parseNum(p['Monto recibido']),0);
+    const espCRC=estadoCuenta.filter(c=>c['Moneda']==='CRC').reduce((a,c)=>a+parseNum(c['Tarifa']),0);
+    const deuda=Math.max(0,espCRC-cobCRC);
+    return{mes,m,cobCRC,cobUSD,deuda};
+  });
+}
+
+function calcEstadoPorMes(mesesMostrar){
+  return mesesMostrar.map(m=>{
+    const mes=MESES[m-1];
+    const pagsMes=pagosData.filter(p=>(p['Periodo_que_cubre']||'').toLowerCase().includes(mes.toLowerCase()));
+    const clientesPagaron=new Set(pagsMes.map(p=>p['ID_Cliente']));
+    let alDia=0,mora=0,pendiente=0,aFavor=0,especie=0;
+    estadoCuenta.forEach(c=>{
+      const est=c['Estado']||'';
+      if(est==='Especie'||est==='Pago en especie'){especie++;return;}
+      if(!est||est.toLowerCase().includes('inactivo')||est.toLowerCase().includes('cerrado'))return;
+      const pagado=parseNum(c['Total pagado']);
+      const tarifa=parseNum(c['Tarifa']);
+      const pago=clientesPagaron.has(c['ID_Cliente']);
+      if(pago&&tarifa>0){
+        const ratio=pagado/tarifa;
+        if(ratio>=m)alDia++;
+        else if(ratio>=m-0.5)pendiente++;
+        else mora++;
+      } else if(parseNum(c['Saldo'])<0){aFavor++;}
+      else if(parseNum(c['Periodos en mora'])>=1){mora++;}
+      else{pendiente++;}
+    });
+    return{mes,alDia,mora,pendiente,aFavor,especie};
+  });
+}
+
+function render(){
+  const corte=parseInt(document.getElementById('corte').value);
+  const mesesMostrar=todosMeses?[1,2,3,4,5,6,7,8,9,10,11,12].filter(m=>m<=12):Array.from({length:corte},(_,i)=>i+1);
+  const data=estadoCuenta;
+  const act=data.filter(d=>d['Estado']&&!['Inactivo','Cerrado','Cerrado / Se fue','Pago en especie','Especie'].some(x=>d['Estado'].toLowerCase().includes(x.toLowerCase())));
+  const alDia=act.filter(d=>d['Estado']==='Al dia'||d['Estado']==='Al día').length;
+  const mora=act.filter(d=>d['Estado']&&d['Estado'].includes('MORA')).length;
+  const pend=act.filter(d=>d['Estado']==='Pendiente').length;
+  const aFav=act.filter(d=>d['Estado']==='A favor').length;
+  const crc=act.filter(d=>d['Moneda']==='CRC');
+  const usd=act.filter(d=>d['Moneda']==='USD');
+  const totEspCRC=crc.reduce((a,d)=>a+parseNum(d['Esperado al corte']),0);
+  const totPagCRC=crc.reduce((a,d)=>a+parseNum(d['Total pagado']),0);
+  const totEspUSD=usd.reduce((a,d)=>a+parseNum(d['Esperado al corte']),0);
+  const totPagUSD=usd.reduce((a,d)=>a+parseNum(d['Total pagado']),0);
+
+  // Cartera total activa (suma tarifas CRC activos + USD activos)
+  const EXCLUIR_CARTERA=['Inactivo','Especie','Pago en especie','Cerrado','Cerrado / Se fue'];
+  const cartaCRC=estadoCuenta.filter(c=>c['Moneda']==='CRC'&&c['Estado']&&!EXCLUIR_CARTERA.some(x=>c['Estado'].toLowerCase().includes(x.toLowerCase()))).reduce((a,c)=>a+parseNum(c['Tarifa']),0);
+  const cartaUSD=estadoCuenta.filter(c=>c['Moneda']==='USD'&&c['Estado']&&!EXCLUIR_CARTERA.some(x=>c['Estado'].toLowerCase().includes(x.toLowerCase()))).reduce((a,c)=>a+parseNum(c['Tarifa']),0);
+  document.getElementById('cartaTotal').textContent='₡'+Math.round(cartaCRC).toLocaleString('en-US')+(cartaUSD>0?' + $'+Math.round(cartaUSD).toLocaleString('en-US'):'');
+
+  document.getElementById('metrics').innerHTML=`
+    <div class="metric"><div class="lbl">Al día</div><div class="val g">${alDia||'—'}</div></div>
+    <div class="metric"><div class="lbl">En mora</div><div class="val r">${mora||'—'}</div></div>
+    <div class="metric"><div class="lbl">Pendiente</div><div class="val a">${pend||'—'}</div></div>
+    <div class="metric"><div class="lbl">A favor</div><div class="val t">${aFav||'—'}</div></div>
+    <div class="metric"><div class="lbl">Cobrado ₡</div><div class="val g">${fm(totPagCRC,'CRC')}</div></div>
+    <div class="metric"><div class="lbl">Por cobrar ₡</div><div class="val r">${fm(Math.max(0,totEspCRC-totPagCRC),'CRC')}</div></div>
+    <div class="metric"><div class="lbl">Cobrado USD</div><div class="val g">${fm(totPagUSD,'USD')}</div></div>
+    <div class="metric"><div class="lbl">Por cobrar USD</div><div class="val r">${fm(Math.max(0,totEspUSD-totPagUSD),'USD')}</div></div>
+  `;
+
+  document.getElementById('totals').innerHTML=`
+    <div class="totals-card">
+      <h3>Total acumulado — colones</h3>
+      <div class="total-line"><span class="lk">Esperado al corte</span><span class="vk">${fm(totEspCRC,'CRC')}</span></div>
+      <div class="total-line"><span class="lk">Total cobrado</span><span class="vk" style="color:#34d399">${fm(totPagCRC,'CRC')}</span></div>
+      <div class="total-line"><span class="lk">Pendiente de cobro</span><span class="vk" style="color:#f87171">${fm(Math.max(0,totEspCRC-totPagCRC),'CRC')}</span></div>
+      <div class="total-line"><span class="lk">Porcentaje cobrado</span><span class="vk" style="color:#fbbf24">${totEspCRC>0?Math.round(totPagCRC/totEspCRC*100):0}%</span></div>
+    </div>
+    <div class="totals-card">
+      <h3>Total acumulado — dólares</h3>
+      <div class="total-line"><span class="lk">Esperado al corte</span><span class="vk">${fm(totEspUSD,'USD')}</span></div>
+      <div class="total-line"><span class="lk">Total cobrado</span><span class="vk" style="color:#34d399">${fm(totPagUSD,'USD')}</span></div>
+      <div class="total-line"><span class="lk">Pendiente de cobro</span><span class="vk" style="color:#f87171">${fm(Math.max(0,totEspUSD-totPagUSD),'USD')}</span></div>
+      <div class="total-line"><span class="lk">Porcentaje cobrado</span><span class="vk" style="color:#fbbf24">${totEspUSD>0?Math.round(totPagUSD/totEspUSD*100):0}%</span></div>
+    </div>
+  `;
+
+  const mesesCuadritos=todosMeses?mesesMostrar:[parseInt(document.getElementById('corte').value)];
+  const mensual=calcMensual(mesesMostrar);
+  const mensualMostrar=calcMensual(mesesCuadritos);
+  document.getElementById('mensual').innerHTML=mensualMostrar.map(m=>`
+    <div class="mes-card">
+      <div class="mn">${m.mes.substring(0,3).toUpperCase()}</div>
+      <div class="mc">${fm(m.cobCRC,'CRC')}</div>
+      <div class="md">-${fm(m.deuda,'CRC')}</div>
+      <div class="mu">$${Math.round(m.cobUSD).toLocaleString('en-US')}</div>
+    </div>`).join('');
+
+  if(chart1)chart1.destroy();
+  if(chart2)chart2.destroy();
+
+  // Chart 1: Doughnut - calcular por mes seleccionado
+  const mesPastel=parseInt(document.getElementById('corte').value);
+  const nomMesPastel=MESES[mesPastel-1];
+  const pagosMesPastel=pagosData.filter(p=>(p['Periodo_que_cubre']||'').toLowerCase().includes(nomMesPastel.toLowerCase()));
+  const clientesPagaronMes=new Set(pagosMesPastel.map(p=>p['ID_Cliente']));
+  let pAlDia=0,pMora=0,pPend=0,pFavor=0,pEspecie=0;
+  act.forEach(c=>{
+    const est=c['Estado']||'';
+    if(est==='Especie'){pEspecie++;return;}
+    const tarifa=parseNum(c['Tarifa']);
+    const pagosCliente=pagosMesPastel.filter(p=>p['ID_Cliente']===c['ID_Cliente']);
+    const montoPagadoMes=pagosCliente.reduce((a,p)=>a+parseNum(p['Monto recibido']),0);
+    if(tarifa===0)return;
+    if(montoPagadoMes>=tarifa*0.9)pAlDia++;
+    else if(montoPagadoMes>0)pPend++;
+    else if(parseNum(c['Periodos en mora'])>=1)pMora++;
+    else pPend++;
+  });
+  const stColors=['#34d399','#f87171','#fbbf24','#2dd4bf','#60a5fa'];
+  const stLbls=['Al día','Mora','Pendiente','A favor','Especie'];
+  const stVals=[pAlDia,pMora,pPend,pFavor,pEspecie];
+  document.getElementById('leg1').innerHTML=stLbls.map((l,i)=>`<span><span class="dot" style="background:${stColors[i]}"></span>${l} ${stVals[i]}</span>`).join('');
+  chart1=new Chart(document.getElementById('c1'),{
+    type:'doughnut',
+    data:{labels:stLbls,datasets:[{data:stVals,backgroundColor:stColors,borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}
+  });
+
+  // Chart 2: Recaudacion - solo mes seleccionado o todos si boton activo
+  const mensualBarras=todosMeses?mensual:calcMensual([parseInt(document.getElementById('corte').value)]);
+  const cobrados=mensualBarras.map(m=>m.cobCRC);
+  const esperados=mensualBarras.map(m=>m.cobCRC+m.deuda);
+  const adeudados=mensualBarras.map(m=>m.deuda);
+  document.getElementById('leg2').innerHTML=`
+    <span><span class="dot" style="background:#1d4ed8"></span>Esperado</span>
+    <span><span class="dot" style="background:#34d399"></span>Cobrado</span>
+    <span><span class="dot" style="background:#f87171"></span>Adeudado</span>`;
+  chart2=new Chart(document.getElementById('c2'),{
+    type:'bar',
+    data:{
+      labels:mensualBarras.map(m=>m.mes.substring(0,3)),
+      datasets:[
+        {label:'Esperado',data:esperados,backgroundColor:'#1d4ed8'},
+        {label:'Cobrado',data:cobrados,backgroundColor:'#34d399'},
+        {label:'Adeudado',data:adeudados,backgroundColor:'#f87171'},
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': ₡'+Math.round(ctx.raw).toLocaleString('en-US')}},
+      },
+      scales:{
+        x:{ticks:{color:'#64748b',autoSkip:false},grid:{color:'#1e293b'}},
+        y:{ticks:{color:'#64748b',callback:v=>"₡"+Math.round(v).toLocaleString("en-US")},grid:{color:'#1e293b'}}
+      },
+      animation:{onComplete:function(){
+        if(todosMeses)return;
+        const ctx=this.ctx;
+        ctx.font='bold 10px system-ui';
+        ctx.textAlign='center';
+        ctx.textBaseline='bottom';
+        this.data.datasets.forEach((ds,di)=>{
+          const meta=this.getDatasetMeta(di);
+          meta.data.forEach((bar,i)=>{
+            const v=ds.data[i];
+            if(v>0){
+              ctx.fillStyle='#e2e8f0';
+              ctx.fillText('₡'+Math.round(v).toLocaleString('en-US'),bar.x,bar.y-2);
+            }
+          });
+        });
+      }}
+    }
+  });
+
+  renderTabla(data);
+}
+
+function renderTabla(data){
+  const EXCLUIR_TABLA=['Inactivo','Cerrado','Cerrado / Se fue'];
+  let fl=data.filter(d=>d['Estado']&&!EXCLUIR_TABLA.some(x=>d['Estado'].toLowerCase().includes(x.toLowerCase())));
+  if(filtro==='mora')fl=fl.filter(d=>d['Estado']&&d['Estado'].includes('MORA'));
+  else if(filtro==='pendiente')fl=fl.filter(d=>d['Estado']==='Pendiente');
+  else if(filtro==='aldia')fl=fl.filter(d=>d['Estado']==='Al dia'||d['Estado']==='Al día');
+  else if(filtro==='afavor')fl=fl.filter(d=>d['Estado']==='A favor');
+  else if(filtro==='usd')fl=fl.filter(d=>d['Moneda']==='USD');
+  const mon=r=>r['Moneda']||'CRC';
+  document.getElementById('tbody').innerHTML=fl.map(d=>`<tr>
+    <td style="color:#475569">${d['ID_Cliente']||''}</td>
+    <td title="${d['Empresa']||''}" style="max-width:180px;overflow:hidden;text-overflow:ellipsis">${d['Empresa']||''}</td>
+    <td><span class="badge ${mon(d)==='USD'?'bb':'bx'}">${mon(d)}</span></td>
+    <td>${fm(d['Tarifa'],mon(d))}</td>
+    <td>${fm(d['Esperado al corte'],mon(d))}</td>
+    <td style="color:#34d399">${fm(d['Total pagado'],mon(d))}</td>
+    <td style="color:${parseNum(d['Saldo'])>0?'#f87171':parseNum(d['Saldo'])<0?'#2dd4bf':'#e2e8f0'}">${fm(Math.abs(parseNum(d['Saldo'])),mon(d))}${parseNum(d['Saldo'])<0?' ↑':parseNum(d['Saldo'])>0?' ↓':''}</td>
+    <td style="text-align:center;color:${parseNum(d['Periodos en mora'])>=2?'#f87171':parseNum(d['Periodos en mora'])===1?'#fbbf24':'#64748b'}">${d['Periodos en mora']||'—'}</td>
+    <td><span class="badge ${bc(d['Estado'])}">${d['Estado']||''}</span></td>
+    <td style="color:#64748b;font-size:11px">${d['Ultimo pago']||'—'}</td>
+    <td style="color:#64748b;font-size:11px;max-width:120px;overflow:hidden;text-overflow:ellipsis">${d['Ultimo comprobante']||'—'}</td>
+  </tr>`).join('');
+  document.getElementById('countNum').textContent=fl.length;
+}
+
+function setF(f,btn){
+  filtro=f;
+  document.querySelectorAll('.filters button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTabla(estadoCuenta);
+}
+
+render();
+</script>
+</body>
+</html>
